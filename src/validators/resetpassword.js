@@ -1,9 +1,9 @@
-import joi from "joi";
+import Joi from "joi";
 
-export const resetpasswordValidation = joi.object({
-  email: joi.string().email().required(),
-  resetpasswordcode: joi.string().required(),
-  newpassword: joi.string()
+export const resetpasswordValidation = Joi.object({
+  email: Joi.string().trim().email().required(),
+  resetpasswordcode: Joi.string().required(),
+  newpassword: Joi.string()
   .min(6)
   .max(20)
   .required()

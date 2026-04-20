@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 import { loginvalidation } from "../../validators/login.js";
 import sendPasswordResetEmail from "../../middlewares/PasswordresetEmail.js";
 import { resetpasswordValidation } from "../../validators/resetpassword.js";
+import cloudinary from "../../config/cloudinary.js";
+import multer from "multer";
 
 export const register = async (req, res) => {
   try {
@@ -58,29 +60,29 @@ export const register = async (req, res) => {
   }
 };
 
-export const login = async (req,res) =>{
+export const login = async (req, res) => {
   try {
-    const{error}=loginvalidation.validate(req.body)
-    if(error){
+    const { error } = loginvalidation.validate(req.body)
+    if (error) {
       return res.status(400).json({
         message: error.details[0].message,
         success: false
       });
     }
 
-    const{email,password} = req.body;
+    const { email, password } = req.body;
 
-    const user = await User.findOne({email});
+    const user = await User.findOne({ email });
 
-    if(!user){
+    if (!user) {
       return res.status(400).json({
-        message:"User not found",
-        success:false
+        message: "User not found",
+        success: false
       })
     }
     console.log("user", user)
 
-    
+
 
     if (!user.password) {
       return res.status(500).json({
@@ -93,26 +95,26 @@ export const login = async (req,res) =>{
 
 
 
-    if(!isPasswordValid){
+    if (!isPasswordValid) {
       return res.status(400).json({
-        message:"invalid password",
-        success:false
+        message: "invalid password",
+        success: false
       })
     }
 
     // console.log("isPasswordValid", isPasswordValid)
-    
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
 
     res.status(200).json({
-      message:"User Logged in successfully",
-      success:true,
+      message: "User Logged in successfully",
+      success: true,
       token,
-      user:{
-        _id:user._id,
-        name:user.name,
-        email:user.email
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email
       }
     })
 
@@ -127,17 +129,17 @@ export const login = async (req,res) =>{
   }
 }
 
-export const forgotpassword = async(req,res)=>{
+export const forgotpassword = async (req, res) => {
   try {
-    
-    const {email} =req.body
 
-    const user = await User.findOne({email});
+    const { email } = req.body
 
-    if(!user){
+    const user = await User.findOne({ email });
+
+    if (!user) {
       return res.status(400).json({
-        message:"User not found",
-        success:false
+        message: "User not found",
+        success: false
       })
     }
 
@@ -151,8 +153,8 @@ export const forgotpassword = async(req,res)=>{
     await sendPasswordResetEmail(user.email, resetpasswordcode);
 
     res.status(200).json({
-      message:"Password reset email sent successfully",
-      success:true
+      message: "Password reset email sent successfully",
+      success: true
     });
 
 
@@ -163,43 +165,43 @@ export const forgotpassword = async(req,res)=>{
       success: false
     });
   }
-}  
+}
 
-export const resetpassword = async(req,res)=>{
+export const resetpassword = async (req, res) => {
 
   try {
-   
-    const {error} = resetpasswordValidation.validate(req.body);
 
-    if(error){
+    const { error } = resetpasswordValidation.validate(req.body);
+
+    if (error) {
       return res.status(400).json({
-        message:error.details[0].message,
-        success:false
+        message: error.details[0].message,
+        success: false
       })
     }
 
-    const {email, resetpasswordcode, newpassword} = req.body;
+    const { email, resetpasswordcode, newpassword } = req.body;
 
-    const user = await User.findOne({email});
+    const user = await User.findOne({ email });
 
-    if(!user){
+    if (!user) {
       return res.status(400).json({
-        message:"User not found",
-        success:false
+        message: "User not found",
+        success: false
       })
     }
 
-    if(user.resetPasswordCode !== resetpasswordcode){
+    if (user.resetPasswordCode !== resetpasswordcode) {
       return res.status(400).json({
-        message:"Invalid reset password code",
-        success:false
+        message: "Invalid reset password code",
+        success: false
       })
     }
 
-    if(Date.now() > user.resetPasswordExpires){
+    if (Date.now() > user.resetPasswordExpires) {
       return res.status(400).json({
-        message:"Reset password code expired",
-        success:false
+        message: "Reset password code expired",
+        success: false
       })
     }
 
@@ -210,11 +212,11 @@ export const resetpassword = async(req,res)=>{
     await user.save();
 
     res.status(200).json({
-      message:"Password reset successfully",
-      success:true
+      message: "Password reset successfully",
+      success: true
     });
-  
-    
+
+
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -223,3 +225,231 @@ export const resetpassword = async(req,res)=>{
   }
 
 }
+
+// export const googleCallback = async (req,res) =>{
+
+//   try {
+
+//     const token = jwt.sign({id: req.user._id}, process.env.JWT_SECRET, {expiresIn: "1d"});
+
+
+//     //set token in a secure http-only cookie
+
+//     res.cookie("token", token,{
+//      httpOnly: true,
+//      sameSite: "lax" 
+//     });
+
+//     res.redirect(`${process.env.FRONTEND_URL}/success-login?access_token=${token}`)
+
+//     res.status(200).json({
+//       message:"Google callback successful",
+//       success:true,
+//       token
+//     });
+
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({
+//       message:"Internal server error",
+//       success:false
+//     })
+//   }
+
+// }  
+
+
+export const googleCallback = async (req, res) => {
+  try {
+    const token = jwt.sign(
+      { id: req.user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "lax"
+    });
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/success-login?access_token=${token}`
+    );
+
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      message: "Internal server error",
+      success: false
+    });
+  }
+};
+
+
+export const getuser = async (req, res) => {
+  try {
+    console.log(req.user)
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Unauthorized",
+        success: false
+      })
+    }
+
+    res.json({
+      user: req.user
+    })
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Internal server error",
+      success: false
+    })
+  }
+}
+
+export const logout = async (req, res) => {
+
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "lax"
+    });
+
+    res.status(200).json({
+      message: "Logout successful",
+      success: true
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Internal server error",
+      success: false
+    });
+  }
+
+}
+
+export const githubCallback = async (req, res) => {
+
+  try {
+
+    const token = jwt.sign(
+      { id: req.user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    )
+
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/success-login?access_token=${token}`
+    )
+
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message
+    })
+  }
+
+}
+
+
+export const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-password");
+    res.json(user);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Internal server error",
+      success: false
+    });
+  }
+}
+
+
+// export const updateProfile = async (req, res) => {
+
+//   try {
+
+//     const { name } = req.body
+
+//     const file = req.file
+
+//     let avatarUrl = null;
+
+//     if (file) {
+//       const result = await cloudinary.uploader.upload(file.path);
+//       avatarUrl = result.secure_url;
+//     }
+
+
+//     const user = await User.findByIdAndUpdate(req.user._id, {
+//       name,
+//       avatar: avatarUrl
+//     }, { new: true });
+
+//     res.json({
+//       user,
+//       message:"update profile successfully"
+//     });
+
+//   } catch (error) {
+
+//     return res.status(500).json({
+//       message:error.message
+//     })
+
+//   }
+
+
+
+
+
+
+
+// }
+
+export const updateProfile = async (req, res) => {
+  try {
+    console.log("BODY:", req.body);
+    console.log("FILES:", req.files);
+
+    const { name } = req.body;
+    const file = req.files?.photo;
+
+    let avatarData = null;
+
+    if (file) {
+      const result = await cloudinary.uploader.upload(file.tempFilePath, {
+        folder: 'user_avatars'
+      });
+
+      avatarData = {
+        url: result.secure_url,
+        publicId: result.public_id
+      };
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        name,
+        ...(avatarData && { avatar: avatarData })
+      },
+      { new: true }
+    );
+
+    res.json({
+      user,
+      message: "update profile successfully"
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message
+    });
+  }
+};
