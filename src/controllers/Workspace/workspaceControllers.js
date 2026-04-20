@@ -30,66 +30,6 @@ export const createWorkspace = async (req,res) => {
 
 
 
-// export const addMember = async (req, res) => {
-//   try {
-//     const { email } = req.body;
-//     const { workspaceId } = req.params;
-
-//     if (!email) {
-//       return res.status(400).json({
-//         message: "Email is required"
-//       });
-//     }
-
-//     const foundUser = await User.findOne({ email });
-
-//     if (!foundUser) {
-//       return res.status(404).json({
-//         message: "User not found"
-//       });
-//     }
-
-//     const foundWorkspace = await Workspace.findById(workspaceId);
-
-//     if (!foundWorkspace) {
-//       return res.status(404).json({
-//         message: "Workspace not found"
-//       });
-//     }
-
-//     const alreadyMember = foundWorkspace.members.find(
-//       member => member.user.toString() === foundUser._id.toString()
-//     );
-
-//     if (alreadyMember) {
-//       return res.status(400).json({
-//         message: "User is already a member"
-//       });
-//     }
-
-//     foundWorkspace.members.push({
-//       user: foundUser._id,
-//       role: "team_member"
-//     });
-
-//     await foundWorkspace.save();
-
-//     await sendInviteEmail(
-//       email,
-//       foundWorkspace.name
-//     );
-
-//     return res.status(200).json({
-//       message: "Member added and invitation sent",
-//       workspace: foundWorkspace
-//     });
-
-//   } catch (error) {
-//     return res.status(500).json({
-//       message: error.message
-//     });
-//   }
-// }; 
 
 
 
@@ -203,7 +143,49 @@ export const acceptInvite = async (req, res) => {
       message: error.message
     });
   }
-}; 
+};   
+
+export const getWorkspaceById = async (req,res)=>{
+  try {
+    const {id} = req.params;
+    const workspace = await Workspace.findById(id);
+    return res.status(200).json(workspace);
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message
+    });
+  }
+}  
+
+export const getlistWorkspace = async(req,res)=>{
+  try {
+
+    const userId = req.user._id 
+    
+    const workspaces = await Workspace.find({
+      $or:[
+        { owner: userId },
+        { members: userId }
+      ]
+    }).populate("owner").populate("members.user");
+
+    if(!workspaces || workspaces.length === 0){
+      return res.status(404).json({
+        message: "No workspaces found"
+      });
+    }
+
+    console.log(workspaces);
+    return res.status(200).json({
+      workspaces
+    })
+    
+  } catch (error) {
+    return res.status(500).json({
+      message:error.message
+    })
+  }
+}
 
 
 
