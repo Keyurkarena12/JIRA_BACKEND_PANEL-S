@@ -94,7 +94,7 @@ export const inviteMember = async (req, res) => {
 
 export const acceptInvite = async (req, res) => {
   try {
-    const { token } = req.params;
+    const { token } = req.query;
 
     const invite = await WorkspaceInvite.findOne({ token });
 
@@ -104,15 +104,43 @@ export const acceptInvite = async (req, res) => {
       });
     }
 
+    // Check if invite has expired
+    if (invite.expiresAt && new Date() > invite.expiresAt) {
+      return res.status(400).json({
+        message: "Invitation has expired"
+      });
+    }
+
     const user = await User.findOne({ email: invite.email });
 
     if (!user) {
       return res.status(404).json({
-        message: "User not found"
+        message: "User not found. Please register or login with the invited email address."
       });
     }
 
     const workspace = await Workspace.findById(invite.workspace);
+
+    if (!workspace) {
+      return res.status(404).json({
+        message: "Workspace not found"
+      });
+    }
+
+    // Check if user is already a member
+    const alreadyMember = workspace.members.find(
+      m => m.user.toString() === user._id.toString()
+    );
+
+    if (alreadyMember) {
+      // Update invite status to accepted anyway
+      invite.status = "accepted";
+      await invite.save();
+      
+      return res.status(200).json({
+        message: "You are already a member of this workspace"
+      });
+    }
 
     // Add to members
     workspace.members.push({
@@ -127,10 +155,15 @@ export const acceptInvite = async (req, res) => {
     await invite.save();
 
     return res.status(200).json({
-      message: "You have joined the workspace"
+      message: "You have successfully joined the workspace",
+      workspace: {
+        id: workspace._id,
+        name: workspace.name
+      }
     });
 
   } catch (error) {
+    console.error("Error accepting invite:", error);
     return res.status(500).json({
       message: error.message
     });
