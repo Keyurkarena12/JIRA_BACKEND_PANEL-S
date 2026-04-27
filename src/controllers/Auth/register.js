@@ -185,38 +185,21 @@ export const login = async (req, res) => {
 
     }
 
-
-
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
-
-
-
-
-
 
     if (!isPasswordValid) {
 
       return res.status(400).json({
-
         message: "invalid password",
-
         success: false
-
       })
 
     }
 
-
-
     // console.log("isPasswordValid", isPasswordValid)
 
 
-
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
-
-
-
 
 
     res.status(200).json({
@@ -635,13 +618,13 @@ export const githubCallback = async (req, res) => {
 
 
 
-export const getCurrentUser = async (req,res) =>{
+export const getCurrentUser = async (req, res) => {
   try {
     const userId = req.user._id;
 
     // Find user data
     const user = await User.findById(userId).select("-password");
-    
+
     // Check if user owns any workspace
     const ownedWorkspace = await Workspace.findOne({
       owner: userId

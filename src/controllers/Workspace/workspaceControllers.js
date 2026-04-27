@@ -28,12 +28,6 @@ export const createWorkspace = async (req,res) => {
     
 }
 
-
-
-
-
-
-
 export const inviteMember = async (req, res) => {
   try {
     const { email } = req.body;
@@ -98,8 +92,6 @@ export const inviteMember = async (req, res) => {
   }
 };  
 
-
-
 export const acceptInvite = async (req, res) => {
   try {
     const { token } = req.params;
@@ -147,9 +139,11 @@ export const acceptInvite = async (req, res) => {
 
 export const getWorkspaceById = async (req,res)=>{
   try {
-    const {id} = req.params;
-    const workspace = await Workspace.findById(id);
-    return res.status(200).json(workspace);
+    const {workspaceId} = req.params;
+    const workspace = await Workspace.findById(workspaceId);
+    return res.status(200).json({
+      workspace
+    });
   } catch (error) {
     return res.status(500).json({
       message: error.message
