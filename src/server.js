@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.js";
 import workspaceRoutes from "./routes/workspace.js";
+import projectRoutes from "./routes/project.js";
+import taskRoutes from "./routes/task.js";
 import "./config/passport.js";
 import cors from "cors";
 import passport from "passport";
@@ -37,6 +39,8 @@ app.use(passport.initialize());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/workspace", workspaceRoutes);
+app.use("/api/project", projectRoutes);
+app.use("/api/task", taskRoutes);
 
 
 mongoose.connect(process.env.MONGO_URI).then(() => {

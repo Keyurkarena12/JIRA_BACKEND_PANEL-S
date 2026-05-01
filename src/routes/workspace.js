@@ -1,5 +1,5 @@
     import express from "express";
-    import {acceptInvite, createWorkspace, getlistWorkspace, getWorkspaceById, inviteMember } from "../controllers/Workspace/workspaceControllers.js";
+    import {acceptInvite, createWorkspace, getAcceptedInvitedUsers, getlistWorkspace, getWorkspaceById, getWorkspaceMembers, inviteMember } from "../controllers/Workspace/workspaceControllers.js";
     import { auth } from "../middlewares/authmiddlewares.js";
     import { isOwner } from "../middlewares/adminmiddleware.js";
 
@@ -11,9 +11,13 @@
 
     router.get("/accept-invite",acceptInvite)
 
-    router.get("/get-workspaces/:workspaceId",auth,isOwner,getWorkspaceById)
+    router.get("/get-workspaces/:workspaceId",auth,getWorkspaceById)
 
     router.get("/get-workspaces",auth,getlistWorkspace)
+   
+    router.get("/get-accepted-invites/:workspaceId",auth,getAcceptedInvitedUsers)  
+
+    router.get("/get-workspace-members/:workspaceId",auth,getWorkspaceMembers)
 
 
     export default router;
