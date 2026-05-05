@@ -1,43 +1,11 @@
 import Project from "../../models/Project.js";
 import User from "../../models/user.js";
 import Workspace from "../../models/workspace.js";
+import { checkPlanLimit } from "../../middlewares/checkPlanLimits.js";
 
-
-// export const createProject = async(req,res) =>{
-
-//     try {
-     
-//         const {name,description}=req.body;
-//         const {workspaceId} = req.params;
-//         // const {workspaceId}=req.query;
-
-//         // console.log("workspaceId", workspaceId);
-//         const workspace = await Workspace.findById(workspaceId);
-
-//         console.log("workspace.....+++++", workspace);
-//         if(!workspace){
-//             return res.status(404).json({message: "Workspace not found"});
-//         }
-
-//         const project = await Project.create({
-//             name,
-//             description,
-//             workspace: workspaceId,
-//             createdBy: req.user._id
-//         });
-
-//         return res.status(201).json({message: "Project created successfully", project});
-        
-//     } catch (error) {
-//         console.log(error);
-//         return res.status(500).json({message: "Internal server error"});
-//     }
-    
-// } 
-
-
-export const createProject = async(req,res) =>{
-
+export const createProject = async (req, res) => {
+  // Apply plan limit check
+  checkPlanLimit('project')(req, res, async () => {
     try {
 
         const {name,description}=req.body;
@@ -69,7 +37,9 @@ export const createProject = async(req,res) =>{
 
         return res.status(201).json({
             message: "Project created successfully",
-            project
+            project,
+            currentPlan: req.currentPlan,
+            limits: req.planLimits
         });
 
     } catch (error) {
@@ -80,8 +50,8 @@ export const createProject = async(req,res) =>{
             message: "Internal server error"
         });
     }
+  });
 }
-
 
 export const getAllProjects = async(req,res)=>{
     const {workspaceId} = req.params;
@@ -120,27 +90,29 @@ export const updateProject = async(req,res)=>{
 }
 
 export const addProjectMember = async (req, res) => {
-  try {
-    const { projectId } = req.params;
-    const { userId, role } = req.body;
+  // Apply plan limit check
+  checkPlanLimit('member')(req, res, async () => {
+    try {
+      const { projectId } = req.params;
+      const { userId, role } = req.body;
 
-    // 1. project find karo
-    const project = await Project.findById(projectId);
+      // 1. project find karo
+      const project = await Project.findById(projectId);
 
-    console.log("projeeeeeeee",project)
-    console.log("dataaaaaaaaaa",userId,role)
+      console.log("projeeeeeeee",project)
+      console.log("dataaaaaaaaaa",userId,role)
 
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
-    }
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
 
-    // 2. user exist hai ya nahi check karo
-    const user = await User.findById(userId);
+      // 2. user exist hai ya nahi check karo
+      const user = await User.findById(userId);
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+    
     // 3. check karo already member hai ya nahi
     const alreadyMember = project.members.find(
       (m) => m.user.toString() === userId
@@ -160,13 +132,16 @@ export const addProjectMember = async (req, res) => {
 
     return res.status(200).json({
       message: "Member added successfully",
-      project
+      project,
+      currentPlan: req.currentPlan,
+      limits: req.planLimits
     });
 
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Internal server error" });
   }
+})
 };
 
 export const getProjectMembers = async (req, res) => {
