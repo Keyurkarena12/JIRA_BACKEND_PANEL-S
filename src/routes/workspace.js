@@ -1,19 +1,23 @@
-import express from "express";
-import {acceptInvite, createWorkspace, getlistWorkspace, getWorkspaceById, inviteMember } from "../controllers/Workspace/workspaceControllers.js";
-import { auth } from "../middlewares/authmiddlewares.js";
-import { isOwner } from "../middlewares/adminmiddleware.js";
+    import express from "express";
+    import {acceptInvite, createWorkspace, getAcceptedInvitedUsers, getlistWorkspace, getWorkspaceById, getWorkspaceMembers, inviteMember } from "../controllers/Workspace/workspaceControllers.js";
+    import { auth } from "../middlewares/authmiddlewares.js";
+    import { isOwner } from "../middlewares/adminmiddleware.js";
 
-const router = express.Router();
+    const router = express.Router();
 
-router.post("/create", auth, createWorkspace);
+    router.post("/create", auth, createWorkspace);
 
-router.post("/add-member/:workspaceId",auth,isOwner,inviteMember)
+    router.post("/add-member/:workspaceId",auth,isOwner,inviteMember)
 
-router.post("/accept-invite/:token",auth,acceptInvite)
+    router.get("/accept-invite",acceptInvite)
 
-router.get("/get-workspaces/:workspaceId",auth,isOwner,getWorkspaceById)
+    router.get("/get-workspaces/:workspaceId",auth,getWorkspaceById)
 
-router.get("/get-workspaces",auth,getlistWorkspace)
+    router.get("/get-workspaces",auth,getlistWorkspace)
+   
+    router.get("/get-accepted-invites/:workspaceId",auth,getAcceptedInvitedUsers)  
+
+    router.get("/get-workspace-members/:workspaceId",auth,getWorkspaceMembers)
 
 
-export default router;
+    export default router;

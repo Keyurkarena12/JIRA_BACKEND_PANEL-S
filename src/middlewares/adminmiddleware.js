@@ -25,7 +25,8 @@ export const isOwner = async (req, res, next) => {
     const { workspaceId } = req.params;
     const userId = req.user._id;
 
-    console.log("userId", userId);
+    // console.log("userId", userId);
+    console.log("workspaceId>>>>>>>>>",workspaceId)
     const foundWorkspace = await Workspace.findById(workspaceId);
 
     if (!foundWorkspace) {
