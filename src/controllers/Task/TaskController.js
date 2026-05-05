@@ -17,6 +17,7 @@ export const taskCreate = async (req, res) => {
         const project = await Project.findById(projectId);
         const projectPrefix = project ? project.name.substring(0, 3).toUpperCase() : 'TSK';
         
+        console.log("proectPrefixxxxxx",projectPrefix)
         // Count total tasks in project for sequential number
         const taskCount = await Task.countDocuments({ project: projectId });
         const taskKey = `${projectPrefix}-${taskCount + 1}`;
@@ -48,7 +49,6 @@ export const taskCreate = async (req, res) => {
 
 }
 
-
 export const getTask = async(req,res)=>{
     try {
         const { taskId } = req.params;
@@ -62,7 +62,6 @@ export const getTask = async(req,res)=>{
         return res.status(500).json({message: "Internal server error"});
     }
 } 
-
 
 export const getProjectTask = async(req,res)=>{
 
@@ -138,5 +137,50 @@ export const assignTaskMember  = async(req,res)=>{
         return res.status(500).json({message: "Internal server error"});
 
     }
-}
+} 
 
+export const moveTask = async (req, res) => {
+
+    try {
+
+        const { taskId } = req.params;
+
+        const { column } = req.body;
+
+        const task = await Task.findById(taskId);
+
+        if (!task) {
+            return res.status(404).json({
+                message: "Task not found"
+            });
+        }
+
+        // Calculate new order for the target column
+        const lastTaskInColumn = await Task.findOne({ 
+            project: task.project, 
+            column: column 
+        }).sort({ order: -1 });
+        
+        const newOrder = lastTaskInColumn ? lastTaskInColumn.order + 1 : 1;
+
+        task.column = column;
+        task.order = newOrder;
+
+        await task.save();
+
+        return res.status(200).json({
+            message: "Task updated successfully",
+            task
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        return res.status(500).json({
+            message: "Internal server error"
+        });
+
+    }
+
+}
