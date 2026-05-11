@@ -5,53 +5,82 @@ import authRoutes from "./routes/auth.js";
 import workspaceRoutes from "./routes/workspace.js";
 import projectRoutes from "./routes/project.js";
 import taskRoutes from "./routes/task.js";
+import subscriptionRoutes from "./routes/subscription.js";
 import "./config/passport.js";
 import cors from "cors";
+// import {server} from "socket.io";
 import passport from "passport";
 import cookieParser from "cookie-parser";
-import fileUpload from "express-fileupload"
-
-// passport ak stretegi library che jem ke google auth karva mate use thay che. github auth mate pan use thay che.
+import fileUpload from "express-fileupload";
+import planRoutes from "./routes/plan.js";
 
 dotenv.config();
 
 const app = express();
 
-const allowedOrigins = [
-  'http://localhost:5000',
-  'https://semisolemn-oliver-thievish.ngrok-free.dev'
-];
+app.use(fileUpload({ useTempFiles: true }));
 
-app.use(fileUpload({
-  useTempFiles:true
-}))
+app.use(cors({
+  origin: [
+    process.env.FRONTEND_URL,
+    'http://localhost:5173',
+    'http://localhost:5000',
+    'https://semisolemn-oliver-thievish.ngrok-free.dev'
+  ],
+  credentials: true
+}));
 
-app.use(cors(
-  {
-    origin:[process.env.FRONTEND_URL],
-    credentials: true
-  }
-));
 app.use(cookieParser());
+
+// ✅ STEP 1 — Webhook raw body MUST come before express.json()
+// Stripe needs raw buffer, not parsed JSON
+app.post(
+  "/api/subscription/webhook",
+  express.raw({ type: "application/json" }),
+  (req, res, next) => {
+    req.rawBody = req.body;
+    next();
+  }
+);
+
+// ✅ STEP 2 — JSON parser for all other routes
 app.use(express.json());
+
 app.use(passport.initialize());
 
+// ✅ Health check
+app.get("/", (req, res) => {
+  res.json({ message: "🚀 Server is running!", status: "OK" });
+});
 
+// ✅ STEP 3 — All routes after json parser
 app.use("/api/auth", authRoutes);
 app.use("/api/workspace", workspaceRoutes);
 app.use("/api/project", projectRoutes);
 app.use("/api/task", taskRoutes);
+app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/plan", planRoutes);
 
+const PORT = Number(process.env.PORT) || 5000;
+const MONGO_URI = process.env.MONGO_URI;
 
-mongoose.connect(process.env.MONGO_URI).then(() => {
-  console.log('Connected to MongoDB');
-}).catch((err) => {
-  console.log(err);
-});
+async function start() {
+  if (!MONGO_URI) {
+    console.error("MONGO_URI is missing. Set it in backend/.env");
+    process.exit(1);
+  }
 
+  try {
+    await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+    console.log("Connected to MongoDB");
 
-app.listen(process.env.PORT, () => {
-    console.log("Server is running on port " + process.env.PORT);
-});
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("MongoDB connection failed:", err.message);
+    process.exit(1);
+  }
+}
 
-
+start();
