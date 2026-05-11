@@ -1,728 +1,397 @@
 import User from "../../models/user.js";
-
 import { registerValidation } from "../../validators/register.js";
-
 import jwt from "jsonwebtoken";
-
 import bcrypt from "bcryptjs";
-
 import { loginvalidation } from "../../validators/login.js";
-
 import sendPasswordResetEmail from "../../middlewares/PasswordresetEmail.js";
-
 import { resetpasswordValidation } from "../../validators/resetpassword.js";
-
 import cloudinary from "../../config/cloudinary.js";
-
-import multer from "multer";
-
 import Workspace from "../../models/workspace.js";
-import { auth } from "../../middlewares/authmiddlewares.js";
+import Plan from "../../models/plan.js";
 
-
-
+// ================= REGISTER =================
 export const register = async (req, res) => {
-
   try {
-
     const { error } = registerValidation.validate(req.body);
-
-
-
     if (error) {
-
       return res.status(400).json({
-
         message: error.details[0].message,
-
         success: false
-
       });
-
     }
-
-
 
     const { name, email, password } = req.body;
 
-
-
     const existingUser = await User.findOne({ email });
-
-
-
     if (existingUser) {
-
       return res.status(400).json({
-
         message: "User already exists",
-
         success: false
-
       });
-
     }
-
-
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-
-
     const user = await User.create({
-
       name,
-
       email,
-
-      password: hashedPassword
-
+      password: hashedPassword,
+      plan: "free"
     });
 
-
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
-
-
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     res.status(201).json({
-
       message: "User created successfully",
-
       success: true,
-
       token,
-
       user: {
-
         _id: user._id,
-
         name: user.name,
-
         email: user.email,
-
-        password: user.password
-
+        plan: user.plan
       }
-
     });
-
-
 
   } catch (error) {
-
-    res.status(500).json({
-
-      message: error.message,
-
-      success: false
-
-    });
-
+    res.status(500).json({ message: error.message, success: false });
   }
-
 };
 
 
-
+// ================= LOGIN =================
 export const login = async (req, res) => {
-
   try {
-
-    const { error } = loginvalidation.validate(req.body)
-
+    const { error } = loginvalidation.validate(req.body);
     if (error) {
-
       return res.status(400).json({
-
         message: error.details[0].message,
-
         success: false
-
       });
-
     }
-
-
 
     const { email, password } = req.body;
 
-
-
     const user = await User.findOne({ email });
-
-
-
     if (!user) {
-
       return res.status(400).json({
-
         message: "User not found",
-
         success: false
-
-      })
-
+      });
     }
 
-    console.log("user", user)
-
-
-
-
-
-
-
     if (!user.password) {
-
-      return res.status(500).json({
-
-        message: "User password is missing or corrupted in database",
-
+      return res.status(400).json({
+        message: "This account uses Google or GitHub login. Please sign in with that instead.",
         success: false
-
       });
-
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
     if (!isPasswordValid) {
-
       return res.status(400).json({
-        message: "invalid password",
+        message: "Invalid password",
         success: false
-      })
-
+      });
     }
 
-    // console.log("isPasswordValid", isPasswordValid)
+    await User.findByIdAndUpdate(user._id, { lastActiveAt: new Date() });
 
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
-
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     res.status(200).json({
-
-      message: "User Logged in successfully",
-
+      message: "User logged in successfully",
       success: true,
-
       token,
-
       user: {
-
         _id: user._id,
-
         name: user.name,
-
-        email: user.email
-
+        email: user.email,
+        avatar: user.avatar,
+        plan: user.plan
       }
-
-    })
-
-
-
-
-
-
-
-
-
-  } catch (error) {
-
-    res.status(500).json({
-
-      message: error.message,
-
-      success: false
-
     });
 
+  } catch (error) {
+    res.status(500).json({ message: error.message, success: false });
   }
-
-}
-
+};
 
 
+// ================= FORGOT PASSWORD =================
 export const forgotpassword = async (req, res) => {
-
   try {
+    const { email } = req.body;
 
-
-
-    const { email } = req.body
-
-
-
-    const user = await User.findOne({ email });
-
-
-
-    if (!user) {
-
+    if (!email) {
       return res.status(400).json({
-
-        message: "User not found",
-
+        message: "Email is required",
         success: false
-
-      })
-
+      });
     }
 
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({
+        message: "User not found",
+        success: false
+      });
+    }
 
+    const resetpasswordcode = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
 
-    const resetpasswordcode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    const resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-
+    const resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
     user.resetPasswordCode = resetpasswordcode;
-
     user.resetPasswordExpires = resetPasswordExpires;
-
     await user.save();
-
-
 
     await sendPasswordResetEmail(user.email, resetpasswordcode);
 
-
-
     res.status(200).json({
-
       message: "Password reset email sent successfully",
-
       success: true
-
     });
-
-
-
-
-
-
 
   } catch (error) {
-
-    res.status(500).json({
-
-      message: error.message,
-
-      success: false
-
-    });
-
+    res.status(500).json({ message: error.message, success: false });
   }
-
-}
-
+};
 
 
+// ================= RESET PASSWORD =================
 export const resetpassword = async (req, res) => {
-
-
   try {
-
-
-
     const { error } = resetpasswordValidation.validate(req.body);
-
-
-
     if (error) {
-
       return res.status(400).json({
-
         message: error.details[0].message,
-
         success: false
-
-      })
-
+      });
     }
-
-
 
     const { email, resetpasswordcode, newpassword } = req.body;
 
-
-
     const user = await User.findOne({ email });
-
-
-
     if (!user) {
-
       return res.status(400).json({
-
         message: "User not found",
-
         success: false
-
-      })
-
+      });
     }
-
-
 
     if (user.resetPasswordCode !== resetpasswordcode) {
-
       return res.status(400).json({
-
-        message: "Invalid reset password code",
-
+        message: "Invalid reset code",
         success: false
-
-      })
-
+      });
     }
-
 
     if (Date.now() > user.resetPasswordExpires) {
-
       return res.status(400).json({
-
-        message: "Reset password code expired",
-
+        message: "Reset code has expired. Please request a new one.",
         success: false
-
-      })
-
+      });
     }
 
-
-
-    const hashedPassword = await bcrypt.hash(newpassword, 10);
-
-    user.password = hashedPassword;
-
-    user.resetPasswordCode = undefined;
-
-    user.resetPasswordExpires = undefined;
-
+    user.password = await bcrypt.hash(newpassword, 10);
+    user.resetPasswordCode = null;
+    user.resetPasswordExpires = null;
     await user.save();
 
-
-
     res.status(200).json({
-
       message: "Password reset successfully",
-
       success: true
-
     });
-
-
-
-
 
   } catch (error) {
-
-    res.status(500).json({
-
-      message: error.message,
-
-      success: false
-
-    });
-
+    res.status(500).json({ message: error.message, success: false });
   }
+};
 
 
-
-}
-
-
-
+// ================= GOOGLE CALLBACK =================
 export const googleCallback = async (req, res) => {
-
   try {
-
     const token = jwt.sign(
-
       { id: req.user._id },
-
       process.env.JWT_SECRET,
-
       { expiresIn: "1d" }
-
     );
-
-
 
     res.cookie("token", token, {
-
       httpOnly: true,
-
       sameSite: "lax"
-
     });
 
-
-
     return res.redirect(
-
       `${process.env.FRONTEND_URL}/success-login?access_token=${token}`
-
     );
 
-
-
   } catch (error) {
-
-    console.log(error);
-
-
-
     return res.status(500).json({
-
       message: "Internal server error",
-
       success: false
-
     });
-
   }
-
 };
 
 
-
-
-
-export const getuser = async (req, res) => {
-
-  try {
-
-    console.log(req.user)
-
-    if (!req.user) {
-
-      return res.status(401).json({
-
-        message: "Unauthorized",
-
-        success: false
-
-      })
-
-    }
-
-
-
-    res.json({
-
-      user: req.user
-
-    })
-
-
-
-  } catch (error) {
-
-    console.log(error);
-
-    res.status(500).json({
-
-      message: "Internal server error",
-
-      success: false
-
-    })
-
-  }
-
-}
-
-
-
-export const logout = async (req, res) => {
-
-  try {
-
-    res.clearCookie("token", {
-
-      httpOnly: true,
-
-      sameSite: "lax"
-
-    });
-
-
-
-    res.status(200).json({
-
-      message: "Logout successful",
-
-      success: true
-
-    });
-
-
-
-  } catch (error) {
-
-    console.log(error);
-
-    res.status(500).json({
-
-      message: "Internal server error",
-
-      success: false
-
-    });
-
-  }
-
-
-
-}
-
-
-
+// ================= GITHUB CALLBACK =================
 export const githubCallback = async (req, res) => {
-
   try {
-
     const token = jwt.sign(
-
       { id: req.user._id },
-
       process.env.JWT_SECRET,
-
       { expiresIn: "1d" }
-
-    )
+    );
 
     return res.redirect(
-
       `${process.env.FRONTEND_URL}/success-login?access_token=${token}`
-
-    )
+    );
 
   } catch (error) {
-
     return res.status(500).json({
-
-      message: error.message
-
-    })
-
+      message: error.message,
+      success: false
+    });
   }
-
 };
 
 
+// ================= GET USER (JWT passport) =================
+export const getuser = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        message: "Unauthorized",
+        success: false
+      });
+    }
 
+    res.json({ user: req.user });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      success: false
+    });
+  }
+};
+
+
+// ================= GET CURRENT USER =================
 export const getCurrentUser = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // Find user data
     const user = await User.findById(userId).select("-password");
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false
+      });
+    }
 
-    // Check if user owns any workspace
-    const ownedWorkspace = await Workspace.findOne({
-      owner: userId
-    });
-
-    // Determine role based on workspace ownership
+    const ownedWorkspace = await Workspace.findOne({ owner: userId });
     const role = ownedWorkspace ? "owner" : "team_member";
 
-    // Return user data with role
+    // ✅ Plan.name is a specific variant (e.g. pro_monthly), not the group (pro)
+    const planDoc = await Plan.findOne({
+      name: user.specificPlan || "free",
+      isActive: true
+    });
+
     res.json({
       ...user.toObject(),
-      role
+      role,
+      plan: user.plan,
+      specificPlan: user.specificPlan, // Include specific plan variant
+      planLimits: planDoc ? {
+        workspaces: planDoc.limits.workspaces === -1 ? "Unlimited" : planDoc.limits.workspaces,
+        membersPerWorkspace: planDoc.limits.membersPerWorkspace === -1 ? "Unlimited" : planDoc.limits.membersPerWorkspace,
+        chat: planDoc.limits.chat
+      } : null
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message, success: false });
   }
-}
+};
 
 
-export const updateProfile = async (req, res) => {
-
+// ================= LOGOUT =================
+export const logout = async (req, res) => {
   try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "lax"
+    });
 
-    console.log("BODY:", req.body);
+    res.status(200).json({
+      message: "Logout successful",
+      success: true
+    });
 
-    console.log("FILES:", req.files);
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+      success: false
+    });
+  }
+};
 
 
-
+// ================= UPDATE PROFILE =================
+export const updateProfile = async (req, res) => {
+  try {
     const { name } = req.body;
-
     const file = req.files?.photo;
-
-
 
     let avatarData = null;
 
-
-
     if (file) {
+      const existingUser = await User.findById(req.user._id);
+      if (existingUser?.avatar?.publicId) {
+        await cloudinary.uploader.destroy(existingUser.avatar.publicId);
+      }
 
       const result = await cloudinary.uploader.upload(file.tempFilePath, {
-
-        folder: 'user_avatars'
-
+        folder: "user_avatars"
       });
 
-
-
       avatarData = {
-
         url: result.secure_url,
-
         publicId: result.public_id
-
       };
-
     }
 
-
-
     const user = await User.findByIdAndUpdate(
-
       req.user._id,
-
       {
-
-        name,
-
+        ...(name && { name }),
         ...(avatarData && { avatar: avatarData })
-
       },
-
       { new: true }
-
-    );
-
-
+    ).select("-password");
 
     res.json({
-
-      user,
-
-      message: "update profile successfully"
-
+      message: "Profile updated successfully",
+      success: true,
+      user
     });
-
-
 
   } catch (error) {
-
-    return res.status(500).json({
-
-      message: error.message
-
-    });
-
+    res.status(500).json({ message: error.message, success: false });
   }
-
 };

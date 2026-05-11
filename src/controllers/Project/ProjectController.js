@@ -4,8 +4,6 @@ import Workspace from "../../models/workspace.js";
 import { checkPlanLimit } from "../../middlewares/checkPlanLimits.js";
 
 export const createProject = async (req, res) => {
-  // Apply plan limit check
-  checkPlanLimit('project')(req, res, async () => {
     try {
 
         const {name,description}=req.body;
@@ -50,7 +48,6 @@ export const createProject = async (req, res) => {
             message: "Internal server error"
         });
     }
-  });
 }
 
 export const getAllProjects = async(req,res)=>{
@@ -90,8 +87,6 @@ export const updateProject = async(req,res)=>{
 }
 
 export const addProjectMember = async (req, res) => {
-  // Apply plan limit check
-  checkPlanLimit('member')(req, res, async () => {
     try {
       const { projectId } = req.params;
       const { userId, role } = req.body;
@@ -141,7 +136,6 @@ export const addProjectMember = async (req, res) => {
     console.log(error);
     return res.status(500).json({ message: "Internal server error" });
   }
-})
 };
 
 export const getProjectMembers = async (req, res) => {

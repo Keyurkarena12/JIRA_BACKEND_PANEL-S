@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "init": "ngrok config add-authtoken 3BXIMw4i0YJho0k5rCW7RQmbBIJ_6Zr49cST2LqYFHdDJGQSo",
+    
     "ngrok": "ngrok http 5000"
   },
   "keywords": [],

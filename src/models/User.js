@@ -53,6 +53,33 @@ const userSchema = new mongoose.Schema(
     lastActiveAt: {
       type: Date,
       default: Date.now
+    },
+    plan: {
+      type: String,
+      enum: ["free", "pro", "enterprise"],
+      default: "free"
+    },
+
+    // Track specific plan variant (e.g., "pro_monthly", "pro_yearly")
+    specificPlan: {
+      type: String,
+      enum: ["free", "pro_monthly", "pro_yearly", "enterprise_monthly", "enterprise_yearly"],
+      default: "free"
+    },
+
+    stripeCustomerId: {
+      type: String,
+      default: null
+    },
+
+    stripeSubscriptionId: {
+      type: String,
+      default: null
+    },
+
+    planExpiresAt: {
+      type: Date,
+      default: null  // null = free forever
     }
   },
   { timestamps: true }
