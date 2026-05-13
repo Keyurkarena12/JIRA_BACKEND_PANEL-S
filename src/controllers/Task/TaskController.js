@@ -52,7 +52,10 @@ export const taskCreate = async (req, res) => {
 export const getTask = async(req,res)=>{
     try {
         const { taskId } = req.params;
-        const task = await Task.findById(taskId);
+        const task = await Task.findById(taskId)
+            .populate('reporter', 'name email avatar')
+            .populate('assignee', 'name email avatar');
+        if (!task) return res.status(404).json({ message: "Task not found" });
         return res.status(200).json({
             message: "Task fetched",
             task
@@ -61,7 +64,34 @@ export const getTask = async(req,res)=>{
         console.log(error);
         return res.status(500).json({message: "Internal server error"});
     }
-} 
+}
+// new----13/05/2026
+export const updateTask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { title, description, column, priority, dueDate } = req.body;
+
+        const task = await Task.findById(taskId);
+        if (!task) return res.status(404).json({ message: "Task not found" });
+
+        if (title !== undefined) task.title = title;
+        if (description !== undefined) task.description = description;
+        if (column !== undefined) task.column = column;
+        if (priority !== undefined) task.priority = priority;
+        if (dueDate !== undefined) task.dueDate = dueDate || null;
+
+        await task.save();
+
+        const updated = await Task.findById(task._id)
+            .populate('reporter', 'name email avatar')
+            .populate('assignee', 'name email avatar');
+
+        return res.status(200).json({ message: "Task updated", task: updated });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
 
 export const getProjectTask = async(req,res)=>{
 
@@ -182,5 +212,18 @@ export const moveTask = async (req, res) => {
         });
 
     }
-
 }
+
+// new----13/05/2026
+export const deleteTask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const task = await Task.findById(taskId);
+        if (!task) return res.status(404).json({ message: "Task not found" });
+        await Task.findByIdAndDelete(taskId);
+        return res.status(200).json({ message: "Task deleted", taskId });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
