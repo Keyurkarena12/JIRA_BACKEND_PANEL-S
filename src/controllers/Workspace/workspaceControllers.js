@@ -1,9 +1,31 @@
 import User from "../../models/user.js";
 import Workspace from "../../models/workspace.js";
+import Plan from "../../models/plan.js";
 import sendInviteEmail from "../../middlewares/InviteEmail.js";
 import bcrypt from "bcryptjs";
 import WorkspaceInvite from "../../models/WorkspaceInvite.js";
-import Plan from "../../models/plan.js"; // ✅ DB lookup instead of config file
+
+// ================= SLUG GENERATION HELPER =================
+const generateSlug = async (name) => {
+  // Convert to lowercase and replace spaces with hyphens
+  let slug = name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+
+  // Check if slug exists, if so, append a number
+  let originalSlug = slug;
+  let counter = 1;
+  
+  while (await Workspace.findOne({ slug })) {
+    slug = `${originalSlug}-${counter}`;
+    counter++;
+  }
+  
+  return slug;
+};
 
 // ================= HELPER — fetch plan limits from DB =================
 const getPlanLimits = async (planName) => {
@@ -16,24 +38,19 @@ const getPlanLimits = async (planName) => {
   };
 };
 
-
 // ================= CREATE WORKSPACE =================
 export const createWorkspace = async (req, res) => {
   try {
-    const { name, slug, description } = req.body;
+    const { name, description } = req.body;
 
-    if (!name || !slug) {
+    if (!name) {
       return res.status(400).json({
-        message: "Name and slug are required."
+        message: "Workspace name is required."
       });
     }
 
-    const existingSlug = await Workspace.findOne({ slug });
-    if (existingSlug) {
-      return res.status(400).json({
-        message: "Slug already taken. Please choose a different one."
-      });
-    }
+    // Auto-generate slug from name
+    const slug = await generateSlug(name);
 
     const newWorkspace = await Workspace.create({
       name,
@@ -62,6 +79,7 @@ export const createWorkspace = async (req, res) => {
 
 
 // ================= INVITE MEMBER =================
+
 export const inviteMember = async (req, res) => {
   try {
     const { email, role } = req.body;
