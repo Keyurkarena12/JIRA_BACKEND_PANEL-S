@@ -303,6 +303,7 @@ export const getCurrentUser = async (req, res) => {
       });
     }
 
+    // Used only to derive role for the client; workspace creation lives in workspace controllers.
     const ownedWorkspace = await Workspace.findOne({ owner: userId });
     const role = ownedWorkspace ? "owner" : "team_member";
 
@@ -355,42 +356,52 @@ export const logout = async (req, res) => {
 // ================= UPDATE PROFILE =================
 export const updateProfile = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, removeAvatar } = req.body;
     const file = req.files?.photo;
+    const shouldRemoveAvatar = removeAvatar === true || removeAvatar === "true";
 
-    let avatarData = null;
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false
+      });
+    }
+
+    if (typeof name === "string" && name.trim()) {
+      user.name = name.trim();
+    }
 
     if (file) {
-      const existingUser = await User.findById(req.user._id);
-      if (existingUser?.avatar?.publicId) {
-        await cloudinary.uploader.destroy(existingUser.avatar.publicId);
+      if (user?.avatar?.publicId) {
+        await cloudinary.uploader.destroy(user.avatar.publicId);
       }
 
       const result = await cloudinary.uploader.upload(file.tempFilePath, {
         folder: "user_avatars"
       });
 
-      avatarData = {
+      user.avatar = {
         url: result.secure_url,
         publicId: result.public_id
       };
+    } else if (shouldRemoveAvatar) {
+      if (user?.avatar?.publicId) {
+        await cloudinary.uploader.destroy(user.avatar.publicId);
+      }
+
+      user.avatar = undefined;
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      {
-        ...(name && { name }),
-        ...(avatarData && { avatar: avatarData })
-      },
-      { new: true }
-    ).select("-password");
+    await user.save();
+
+    const updatedUser = await User.findById(req.user._id).select("-password");
 
     res.json({
       message: "Profile updated successfully",
       success: true,
-      user
+      user: updatedUser
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message, success: false });
   }

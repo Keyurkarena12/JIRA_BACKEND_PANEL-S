@@ -7,10 +7,11 @@ import BillingHistory from "../../models/billingHistory.js";
 
 const PLAN_LEVEL = {
   free: 0,
-  pro_monthly: 1,
-  pro_yearly: 2,
-  enterprise_monthly: 3,
-  enterprise_yearly: 4
+  pro_daily:1,
+  pro_monthly: 2,
+  pro_yearly: 3,
+  enterprise_monthly: 4,
+  enterprise_yearly: 5
 };
 
 const getPlanLevel = (specificPlanName) => {

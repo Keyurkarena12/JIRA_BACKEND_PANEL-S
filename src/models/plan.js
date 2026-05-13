@@ -4,7 +4,7 @@ const planSchema = new mongoose.Schema({
 
   name: {
     type: String,
-    enum: ["free", "pro_monthly", "pro_yearly", "enterprise_monthly", "enterprise_yearly"],
+    enum: ["free", "pro_monthly", "pro_yearly", "enterprise_monthly", "enterprise_yearly", "pro_daily"],
     required: true,
     unique: true
   },
@@ -26,7 +26,7 @@ const planSchema = new mongoose.Schema({
 
   billingCycle: {
     type: String,
-    enum: ["monthly", "yearly", "none"],
+    enum: ["monthly", "yearly", "none", "daily"],
     default: "none"   // free = none
   },
 
