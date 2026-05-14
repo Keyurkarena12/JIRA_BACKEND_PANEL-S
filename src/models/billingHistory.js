@@ -1,50 +1,4 @@
-// import mongoose from "mongoose";
-
-// const billingHistorySchema = new mongoose.Schema({
-
-//   userId: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "User"
-//   },
-
-//   subscriptionId: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "Subscription"
-//   },
-
-//   stripeSubscriptionId: String,
-
-//   planName: String,
-
-//   amount: Number,
-
-//   billingCycle: String,
-
-//   status: {
-//     type: String,
-//     enum: [
-//       "active",
-//       "cancelled",
-//       "expired",
-//       "paid"
-//     ]
-//   },
-
-//   startDate: Date,
-
-//   endDate: Date,
-
-//   cancelledAt: Date
-
-// }, { timestamps: true });
-
-// export default mongoose.model(
-//   "BillingHistory",
-//   billingHistorySchema
-// );   
-
-
-import mongoose from "mongoose";
+  import mongoose from "mongoose";
 
 const billingHistorySchema = new mongoose.Schema({
 
@@ -89,7 +43,7 @@ const billingHistorySchema = new mongoose.Schema({
 
   billingCycle: {
     type: String,
-    enum: ["monthly", "yearly", "none"],
+    enum: ["daily", "monthly", "yearly", "none"],
     default: "monthly"
   },
 

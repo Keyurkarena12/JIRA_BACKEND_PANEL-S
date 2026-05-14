@@ -70,7 +70,9 @@ async function syncPaidCheckoutSession(session) {
     currentPeriodEnd =
       billingCycle === "yearly"
         ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        : billingCycle === "monthly"
+        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        : new Date(Date.now() + 24 * 60 * 60 * 1000); // default for daily
   }
 
   // ✅ Cancel old subscription if user is upgrading
