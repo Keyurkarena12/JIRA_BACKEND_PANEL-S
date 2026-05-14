@@ -86,6 +86,21 @@ export const updateProject = async(req,res)=>{
     }
 }
 
+export const deleteProject = async(req,res)=>{
+    try {
+        const {projectId} = req.params;
+        const project = await Project.findById(projectId);
+        if(!project){
+            return res.status(404).json({message: "Project not found"});
+        }
+        await Project.findByIdAndDelete(projectId);
+        return res.status(200).json({message: "Project deleted successfully", projectId});
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({message: "Internal server error"});
+    }
+}
+
 export const addProjectMember = async (req, res) => {
     try {
       const { projectId } = req.params;
