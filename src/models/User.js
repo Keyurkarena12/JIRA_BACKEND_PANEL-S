@@ -63,7 +63,7 @@ const userSchema = new mongoose.Schema(
     // Track specific plan variant (e.g., "pro_monthly", "pro_yearly")
     specificPlan: {
       type: String,
-      enum: ["free", "pro_monthly", "pro_yearly", "enterprise_monthly", "enterprise_yearly"],
+      enum: ["free", "pro_daily", "pro_monthly", "pro_yearly", "enterprise_monthly", "enterprise_yearly"],
       default: "free"
     },
 
