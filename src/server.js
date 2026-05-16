@@ -13,10 +13,27 @@ import passport from "passport";
 import cookieParser from "cookie-parser";
 import fileUpload from "express-fileupload";
 import planRoutes from "./routes/plan.js";
+import chatRoutes from "./routes/chat.js";
+
+import { createServer } from "http";
+import { Server } from "socket.io";
+import socketHandler from "./socket/index.js";
 
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {         // server create yhase
+  cors: {
+    origin: [
+      process.env.FRONTEND_URL,
+      'http://localhost:5173',
+      'http://localhost:5000',
+      'https://semisolemn-oliver-thievish.ngrok-free.dev'
+    ],
+    credentials: true
+  }
+});
 
 app.use(fileUpload({ useTempFiles: true }));
 
@@ -60,6 +77,10 @@ app.use("/api/project", projectRoutes);
 app.use("/api/task", taskRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/plan", planRoutes);
+app.use("/api/chat", chatRoutes);
+
+// Initialize Sockets
+socketHandler(io);    //-----------Pass the socket server into another file
 
 const PORT = Number(process.env.PORT) || 5000;
 const MONGO_URI = process.env.MONGO_URI;
@@ -74,7 +95,7 @@ async function start() {
     await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 10000 });
     console.log("Connected to MongoDB");
 
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
   } catch (err) {
