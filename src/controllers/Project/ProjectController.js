@@ -116,12 +116,22 @@ export const addProjectMember = async (req, res) => {
         return res.status(404).json({ message: "Project not found" });
       }
 
-      // 2. user exist hai ya nahi check karo
-      const user = await User.findById(userId);
+    // 2. user exist hai ya nahi check karo
+    const user = await User.findById(userId);
 
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 2.1 check if user is in the workspace
+    const workspace = await Workspace.findById(project.workspace);
+    const isWorkspaceMember = workspace.members.some(
+      (m) => m.user.toString() === userId
+    );
+
+    if (!isWorkspaceMember) {
+      return res.status(400).json({ message: "User is not a member of this workspace" });
+    }
     
     // 3. check karo already member hai ya nahi
     const alreadyMember = project.members.find(
@@ -129,7 +139,7 @@ export const addProjectMember = async (req, res) => {
     );
 
     if (alreadyMember) {
-      return res.status(400).json({ message: "User already a member" });
+      return res.status(400).json({ message: "User already a member of this project" });
     }
 
     // 4. new member add karo
@@ -139,10 +149,12 @@ export const addProjectMember = async (req, res) => {
     });
 
     await project.save();
+    
+    const populatedProject = await Project.findById(projectId).populate('members.user', 'name email');
 
     return res.status(200).json({
       message: "Member added successfully",
-      project,
+      project: populatedProject,
       currentPlan: req.currentPlan,
       limits: req.planLimits
     });

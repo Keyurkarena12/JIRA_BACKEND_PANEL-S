@@ -12,7 +12,7 @@ router.get("/get-all-projects/:workspaceId",auth, getAllProjects);
 router.put("/update-project/:projectId",auth, updateProject);
 router.delete("/delete-project/:projectId",auth, deleteProject);
 router.post("/task/:projectId",auth, taskCreate);
-router.post("/add-projectmember/:projectId",auth, checkPlanLimit('member'), addProjectMember);
+router.post("/add-projectmember/:projectId",auth, addProjectMember);
 router.get("/get-project-members/:projectId",auth,getProjectMembers);
 
 export default router;
