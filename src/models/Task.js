@@ -34,10 +34,12 @@ const TaskSchema = new mongoose.Schema({
     required: true
   },
 
-  assignee: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  },
+  assignees: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    }
+  ],
 
   reporter: {
     type: mongoose.Schema.Types.ObjectId,
