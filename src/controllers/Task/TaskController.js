@@ -54,7 +54,7 @@ export const getTask = async(req,res)=>{
         const { taskId } = req.params;
         const task = await Task.findById(taskId)
             .populate('reporter', 'name email avatar')
-            .populate('assignee', 'name email avatar');
+            .populate('assignees', 'name email avatar');
         if (!task) return res.status(404).json({ message: "Task not found" });
         return res.status(200).json({
             message: "Task fetched",
@@ -84,7 +84,7 @@ export const updateTask = async (req, res) => {
 
         const updated = await Task.findById(task._id)
             .populate('reporter', 'name email avatar')
-            .populate('assignee', 'name email avatar');
+            .populate('assignees', 'name email avatar');
 
         return res.status(200).json({ message: "Task updated", task: updated });
     } catch (error) {
@@ -99,7 +99,7 @@ export const getProjectTask = async(req,res)=>{
         const {projectId}=req.params;
         console.log("Fetching tasks for projectId:", projectId);
 
-    const task = await Task.find({ project: projectId }).populate('assignee', 'name email');
+    const task = await Task.find({ project: projectId }).populate('assignees', 'name email avatar');
     console.log("Found tasks:", task.length, task);
     
     return res.status(200).json({
@@ -148,11 +148,20 @@ export const assignTaskMember  = async(req,res)=>{
             })
         } 
 
-        task.assignee = assigneeId;
+        if (!task.assignees) task.assignees = [];
+        
+        const assigneeIndex = task.assignees.findIndex(id => id.toString() === assigneeId);
+        
+        if (assigneeIndex === -1) {
+            task.assignees.push(assigneeId);
+        } else {
+            task.assignees.splice(assigneeIndex, 1);
+        }
+        
         await task.save();
         
-        // Populate the assignee data before returning
-        const populatedTask = await Task.findById(task._id).populate('assignee', 'name email');
+        // Populate the assignees data before returning
+        const populatedTask = await Task.findById(task._id).populate('assignees', 'name email avatar');
         
         return res.status(200).json({
             message: "Task assigned",
