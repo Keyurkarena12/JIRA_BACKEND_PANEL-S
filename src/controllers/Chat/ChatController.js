@@ -1,6 +1,7 @@
 import ChatRoom from "../../models/ChatRoom.js";
 import Message from "../../models/Message.js";
 import Workspace from "../../models/workspace.js";
+import Project from "../../models/Project.js";
 
 export const getOrCreateWorkspaceChat = async (req, res) => {
   try {
@@ -86,3 +87,55 @@ export const getUserChatRooms = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getOrCreateProjectChat = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user._id;
+
+    // Check if project exists
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Find general chat for this project
+    let chatRoom = await ChatRoom.findOne({
+      project: projectId,
+      type: "project"
+    });
+
+    // If not exists, create it
+    if (!chatRoom) {
+      chatRoom = await ChatRoom.create({
+        name: `${project.name} General`,
+        type: "project",
+        project: projectId,
+        workspace: project.workspace,
+        createdBy: userId,
+        participants: project.members.map(m => ({ 
+          user: m.user, 
+          role: m.role === 'owner' ? 'admin' : 'member' 
+        }))
+      });
+    } else {
+      // Ensure current user is in participants
+      const isParticipant = chatRoom.participants.some(p => p.user.toString() === userId.toString());
+      if (!isParticipant) {
+        const projectMember = project.members.find(m => m.user.toString() === userId.toString());
+        if (projectMember) {
+          chatRoom.participants.push({
+            user: userId,
+            role: projectMember.role === 'owner' ? 'admin' : 'member'
+          });
+          await chatRoom.save();
+        }
+      }
+    }
+
+    res.status(200).json(chatRoom);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
