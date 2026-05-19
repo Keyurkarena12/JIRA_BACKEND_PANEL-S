@@ -54,7 +54,8 @@ export const getTask = async(req,res)=>{
         const { taskId } = req.params;
         const task = await Task.findById(taskId)
             .populate('reporter', 'name email avatar')
-            .populate('assignees', 'name email avatar');
+            .populate('assignees', 'name email avatar')
+            .populate('comments.user', 'name email avatar');
         if (!task) return res.status(404).json({ message: "Task not found" });
         return res.status(200).json({
             message: "Task fetched",
@@ -84,7 +85,8 @@ export const updateTask = async (req, res) => {
 
         const updated = await Task.findById(task._id)
             .populate('reporter', 'name email avatar')
-            .populate('assignees', 'name email avatar');
+            .populate('assignees', 'name email avatar')
+            .populate('comments.user', 'name email avatar');
 
         return res.status(200).json({ message: "Task updated", task: updated });
     } catch (error) {
@@ -231,6 +233,38 @@ export const deleteTask = async (req, res) => {
         if (!task) return res.status(404).json({ message: "Task not found" });
         await Task.findByIdAndDelete(taskId);
         return res.status(200).json({ message: "Task deleted", taskId });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const addTaskComment = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { text } = req.body;
+        const userId = req.user._id;
+
+        const task = await Task.findById(taskId);
+        if (!task) return res.status(404).json({ message: "Task not found" });
+
+        const project = await Project.findById(task.project);
+        if (!project) return res.status(404).json({ message: "Project not found" });
+
+        const isProjectMember = project.members.some(member => member.user.toString() === userId.toString());
+        if (!isProjectMember) {
+            return res.status(403).json({ message: "Only project members can comment on this task" });
+        }
+
+        task.comments.push({ text, user: userId });
+        await task.save();
+
+        const updatedTask = await Task.findById(taskId)
+            .populate('reporter', 'name email avatar')
+            .populate('assignees', 'name email avatar')
+            .populate('comments.user', 'name email avatar');
+
+        return res.status(200).json({ message: "Comment added", task: updatedTask });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal server error" });
