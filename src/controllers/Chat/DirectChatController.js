@@ -1,37 +1,69 @@
 import ChatRoom from "../../models/ChatRoom.js";
 import User from "../../models/user.js";
 
-export const getOrCreateDirectChat = async (req, res) => {
+export const getDirectChat = async (req, res) => {
   try {
     const { userId } = req.params;
     const currentUserId = req.user.id;
+    const workspaceId = req.query.workspaceId && req.query.workspaceId !== 'undefined' && req.query.workspaceId !== 'null' ? req.query.workspaceId : null;
+    const projectId = req.query.projectId && req.query.projectId !== 'undefined' && req.query.projectId !== 'null' ? req.query.projectId : null;
 
     // Check if room already exists
-    let chatRoom = await ChatRoom.findOne({
+    const query = {
       type: "private",
       $and: [
         { "participants.user": currentUserId },
         { "participants.user": userId }
       ]
-    }).populate("participants.user", "name email avatar");
+    };
 
-    if (!chatRoom) {
-      chatRoom = await ChatRoom.create({
-        name: `private_${currentUserId}_${userId}`,
-        type: "private",
-        createdBy: currentUserId,
-        participants: [
-          { user: currentUserId, role: "admin" },
-          { user: userId, role: "member" }
-        ]
-      });
-
-      chatRoom = await ChatRoom.findById(chatRoom._id).populate("participants.user", "name email avatar");
+    if (workspaceId) {
+      query.workspace = workspaceId;
+    } else {
+      query.workspace = null;
     }
 
+    if (projectId) {
+      query.project = projectId;
+    } else {
+      query.project = null;
+    }
+
+    const chatRoom = await ChatRoom.findOne(query).populate("participants.user", "name email avatar");
     res.status(200).json(chatRoom);
   } catch (error) {
-    console.error("Error in getOrCreateDirectChat:", error);
+    console.error("Error in getDirectChat:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const createDirectChat = async (req, res) => {
+  try {
+    const { userId, workspaceId, projectId } = req.body;
+    const currentUserId = req.user.id;
+
+    let username = await User.findById(userId).select("name");
+    let currentUsername = await User.findById(currentUserId).select("name");
+
+    const roomData = {
+      name: `private_${currentUsername.name},${username.name}`,
+      type: "private",
+      createdBy: currentUserId,
+      participants: [
+        { user: currentUserId, role: "admin" },
+        { user: userId, role: "member" }
+      ]
+    };
+
+    if (workspaceId) roomData.workspace = workspaceId;
+    if (projectId) roomData.project = projectId;
+
+    let chatRoom = await ChatRoom.create(roomData);
+    chatRoom = await ChatRoom.findById(chatRoom._id).populate("participants.user", "name email avatar");
+
+    res.status(201).json(chatRoom);
+  } catch (error) {
+    console.error("Error in createDirectChat:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

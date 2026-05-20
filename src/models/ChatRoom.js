@@ -68,8 +68,7 @@ const chatRoomSchema = new mongoose.Schema(
         ref: "User"
       },
       timestamp: {
-        type: Date,
-        default: Date.now
+        type: Date
       }
     },
 
