@@ -7,7 +7,7 @@ import {
   getUserChatRooms
 } from "../controllers/Chat/ChatController.js";
 
-import { getOrCreateDirectChat, getDirectConversations, searchUsers } from "../controllers/Chat/DirectChatController.js";
+import { getDirectChat, createDirectChat, getDirectConversations, searchUsers } from "../controllers/Chat/DirectChatController.js";
 const router = express.Router();
 
 router.use(auth);
@@ -22,6 +22,7 @@ router.get("/rooms", getUserChatRooms);
 // direact one to one  user 
 router.get("/direct/conversations", getDirectConversations);
 router.get("/direct/search", searchUsers);
-router.get("/direct/:userId", getOrCreateDirectChat);
+router.get("/direct/:userId", getDirectChat);
+router.post("/direct", createDirectChat);
 
 export default router;
