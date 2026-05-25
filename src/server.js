@@ -18,34 +18,19 @@ import chatRoutes from "./routes/chat.js";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import socketHandler from "./socket/index.js";
+import { corsOptions, socketCorsOptions } from "./config/cors.js";
 
 dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {         // server create yhase
-  cors: {
-    origin: [
-      process.env.FRONTEND_URL,
-      'http://localhost:5173',
-      'http://localhost:5000',
-      'https://semisolemn-oliver-thievish.ngrok-free.dev'
-    ],
-    credentials: true
-  }
+const io = new Server(httpServer, {
+  cors: socketCorsOptions,
 });
 
 app.use(fileUpload({ useTempFiles: true }));
 
-app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL,
-    'http://localhost:5173',
-    'http://localhost:5000',
-    'https://semisolemn-oliver-thievish.ngrok-free.dev'
-  ],
-  credentials: true
-}));
+app.use(cors(corsOptions));
 
 app.use(cookieParser());
 
