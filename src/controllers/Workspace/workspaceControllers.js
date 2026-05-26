@@ -175,7 +175,12 @@ export const acceptInvite = async (req, res) => {
       invite.status = "accepted";
       await invite.save();
       return res.status(200).json({
-        message: "You are already a member of this workspace"
+        message: "You are already a member of this workspace",
+        workspace: {
+          _id: workspace._id,
+          id: workspace._id,
+          name: workspace.name
+        }
       });
     }
 
@@ -208,6 +213,7 @@ export const acceptInvite = async (req, res) => {
     return res.status(200).json({
       message: "You have successfully joined the workspace",
       workspace: {
+        _id: workspace._id,
         id: workspace._id,
         name: workspace.name
       }
