@@ -1,10 +1,10 @@
 import transporter from "./Email.config.js";
+import { acceptInviteUrl, FRONTEND_URL } from "../config/urls.js";
 
 const sendInviteEmail = async (email, workspaceName, token) => {
   try {
-
-    // ✅ create invite link with token as query param
-    const inviteLink = `${process.env.FRONTEND_URL}/accept-invite?token=${token}`;
+    const inviteLink = acceptInviteUrl(token);
+    const rejectLink = `${inviteLink}&action=reject`;
 
     const info = await transporter.sendMail({
       from: '"Mini Jira" <kkarena007@gmail.com>',
@@ -43,7 +43,6 @@ const sendInviteEmail = async (email, workspaceName, token) => {
               <strong>${workspaceName}</strong>.
             </p>
 
-            <!-- ✅ ACCEPT BUTTON -->
             <div style="text-align: center; margin: 30px 0;">
               <a href="${inviteLink}" style="
                 display: inline-block;
@@ -54,13 +53,12 @@ const sendInviteEmail = async (email, workspaceName, token) => {
                 border-radius: 8px;
                 font-weight: 600;
               ">
-                ✅ Accept Invitation
+                Accept Invitation
               </a>
             </div>
 
-            <!-- ❌ OPTIONAL REJECT BUTTON -->
             <div style="text-align: center; margin: 15px 0;">
-              <a href="${inviteLink}?action=reject" style="
+              <a href="${rejectLink}" style="
                 display: inline-block;
                 padding: 10px 25px;
                 background: #ef4444;
@@ -69,23 +67,28 @@ const sendInviteEmail = async (email, workspaceName, token) => {
                 border-radius: 8px;
                 font-weight: 500;
               ">
-                ❌ Reject
+                Decline
               </a>
             </div>
+
+            <p style="color: #6b7280; font-size: 13px; word-break: break-all;">
+              Or copy this link:<br/>
+              <a href="${inviteLink}" style="color: #2563eb;">${inviteLink}</a>
+            </p>
 
             <p style="color: #6b7280; font-size: 13px;">
               This invitation will expire in 24 hours.
             </p>
           </div>
 
-          <div style="text-align: center; margin-top: 20px; font-size: 12px;">
-            © 2026 Mini Jira
+          <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #9ca3af;">
+            Sent from ${FRONTEND_URL}
           </div>
         </div>
       `,
     });
 
-    console.log("Invite email sent:", info.messageId);
+    console.log("Invite email sent:", info.messageId, "→", inviteLink);
 
   } catch (error) {
     console.error("Error sending invite email:", error);
