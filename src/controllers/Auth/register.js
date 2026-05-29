@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { loginvalidation } from "../../validators/login.js";
 import sendPasswordResetEmail from "../../middlewares/PasswordresetEmail.js";
 import { resetpasswordValidation } from "../../validators/resetpassword.js";
+import { changePasswordValidation } from "../../validators/changePassword.js";
 import cloudinary from "../../config/cloudinary.js";
 import Workspace from "../../models/workspace.js";
 import Plan from "../../models/plan.js";
@@ -349,6 +350,58 @@ export const logout = async (req, res) => {
       message: "Internal server error",
       success: false
     });
+  }
+};
+
+
+// ================= CHANGE PASSWORD (logged in) =================
+export const changePassword = async (req, res) => {
+  try {
+    const { error } = changePasswordValidation.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        message: error.details[0].message,
+        success: false,
+      });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found',
+        success: false,
+      });
+    }
+
+    if (!user.password) {
+      return res.status(400).json({
+        message:
+          'This account uses Google or GitHub login. Use the email reset option below to set a password.',
+        success: false,
+      });
+    }
+
+    const isCurrentValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentValid) {
+      return res.status(400).json({
+        message: 'Current password is incorrect',
+        success: false,
+      });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordCode = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.status(200).json({
+      message: 'Password updated successfully',
+      success: true,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message, success: false });
   }
 };
 
