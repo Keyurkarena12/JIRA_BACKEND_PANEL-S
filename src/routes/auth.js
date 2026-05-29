@@ -1,5 +1,5 @@
 import express from "express";
-import { forgotpassword, login, register, resetpassword, googleCallback, getuser, logout, githubCallback, getCurrentUser, updateProfile } from "../controllers/Auth/register.js";
+import { forgotpassword, login, register, resetpassword, googleCallback, getuser, logout, githubCallback, getCurrentUser, updateProfile, changePassword } from "../controllers/Auth/register.js";
 import passport from "passport";
 import { auth } from "../middlewares/authmiddlewares.js";
 
@@ -36,6 +36,8 @@ router.get("/google/callback",passport.authenticate('google',{session:false}),
  router.get('/current-user',auth,getCurrentUser)
 
  router.post('/update-profile',auth,updateProfile)
+
+ router.post('/change-password', auth, changePassword)
 
 
 export default router;
